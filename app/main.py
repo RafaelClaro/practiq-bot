@@ -2,6 +2,7 @@ import os
 import logging
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from typing import Optional
 import anthropic
@@ -86,7 +87,7 @@ async def chat(payload: WebhookPayload):
         )
         reply = response.content[0].text
         log.info(f"[{payload.session_id}] assistant: {reply[:80]}")
-        return {"reply": reply}
+        return PlainTextResponse(reply)
 
     except anthropic.APIError as e:
         log.error(f"Anthropic API error: {e}")
