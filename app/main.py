@@ -56,8 +56,9 @@ class Message(BaseModel):
 
 class WebhookPayload(BaseModel):
     message: str
-    history: Optional[list[Message]] = []
     session_id: Optional[str] = None
+    prev_user: Optional[str] = None
+    prev_bot: Optional[str] = None
 
 
 # ── Endpoint principal ──
@@ -65,18 +66,14 @@ class WebhookPayload(BaseModel):
 async def chat(payload: WebhookPayload):
     log.info(f"[{payload.session_id}] user: {payload.message[:80]}")
 
-    # Monta histórico de mensagens
+    # Monta histórico com o último par de troca
     messages = []
-    for msg in (payload.history or []):
-        if msg.role in ("user", "assistant") and msg.content.strip():
-            messages.append({"role": msg.role, "content": msg.content})
+    if payload.prev_user and payload.prev_user.strip() and payload.prev_bot and payload.prev_bot.strip():
+        messages.append({"role": "user", "content": payload.prev_user})
+        messages.append({"role": "assistant", "content": payload.prev_bot})
 
     # Adiciona mensagem atual
     messages.append({"role": "user", "content": payload.message})
-
-    # Garante que inicia com user (exigência da API Anthropic)
-    if messages and messages[0]["role"] != "user":
-        messages = [m for m in messages if m["role"] == "user" or messages.index(m) > 0]
 
     try:
         response = client.messages.create(
